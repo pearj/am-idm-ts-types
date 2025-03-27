@@ -11,7 +11,7 @@ enum Kind {
   Not = "!",
   Presence = "pr",
   True = "true",
-  False = "false"
+  False = "false",
 }
 export type Filter<A> =
   | { kind: Kind.Equals; field: keyof A; val: A[keyof A] }
@@ -31,78 +31,82 @@ export type Filter<A> =
 export const equals = <A, K extends keyof A>(field: K, val: A[K]): Filter<A> => ({
   field,
   kind: Kind.Equals,
-  val
+  val,
 });
 export const greater = <A, K extends keyof A>(field: K, val: A[K]): Filter<A> => ({
   field,
   kind: Kind.Greater,
-  val
+  val,
 });
 export const greaterOrEqual = <A, K extends keyof A>(field: K, val: A[K]): Filter<A> => ({
   field,
   kind: Kind.GreaterOrEqual,
-  val
+  val,
 });
 export const less = <A, K extends keyof A>(field: K, val: A[K]): Filter<A> => ({
   field,
   kind: Kind.Less,
-  val
+  val,
 });
 export const lessOrEqual = <A, K extends keyof A>(field: K, val: A[K]): Filter<A> => ({
   field,
   kind: Kind.LessOrEqual,
-  val
+  val,
 });
 export const contains = <A, K extends keyof A>(field: K, val: A[K]): Filter<A> => ({
   field,
   kind: Kind.Contains,
-  val
+  val,
 });
 export const startsWith = <A, K extends keyof A>(field: K, val: A[K]): Filter<A> => ({
   field,
   kind: Kind.StartsWith,
-  val
+  val,
 });
 export const presence = <A, K extends keyof A>(field: K): Filter<A> => ({
   field,
-  kind: Kind.Presence
+  kind: Kind.Presence,
 });
 export const and = <A>(a: Filter<A>, b: Filter<A>): Filter<A> => ({
   a,
   b,
-  kind: Kind.And
+  kind: Kind.And,
 });
 export const or = <A>(a: Filter<A>, b: Filter<A>): Filter<A> => ({
   a,
   b,
-  kind: Kind.Or
+  kind: Kind.Or,
 });
 export const not = <A>(filter: Filter<A>): Filter<A> => ({
   filter,
-  kind: Kind.Not
+  kind: Kind.Not,
 });
 export const trueVal = <A>(): Filter<A> => ({
-  kind: Kind.True
+  kind: Kind.True,
 });
 export const falseVal = <A>(): Filter<A> => ({
-  kind: Kind.False
+  kind: Kind.False,
 });
 
 // combine 1 to many filters returning true if all are true (and)
+// eslint-disable-next-line sonarjs/reduce-initial-value
 export const allOf = <A>(...dsl: Filter<A>[]): Filter<A> => dsl.reduce((p, c) => and(p, c));
 
 // combine 1 to many filters returning true if any are true (or)
+// eslint-disable-next-line sonarjs/reduce-initial-value
 export const anyOf = <A>(...dsl: Filter<A>[]): Filter<A> => dsl.reduce((p, c) => or(p, c));
 
 // essentially sql's in operator.  Given a field and a collection of values
 // this returns true if any are true.
-export const oneOf = <A, K extends keyof A>(field: keyof A, ...vals: A[K][]): Filter<A> => anyOf(...vals.map(x => equals(field, x)));
+export const oneOf = <A, K extends keyof A>(field: keyof A, ...vals: A[K][]): Filter<A> => anyOf(...vals.map((x) => equals(field, x)));
 
 const escapeQuotes = (str: string): string => str.replace(/'/g, "\\'");
 const prepareValue = (val: unknown): string => {
   if (typeof val === "string") {
     return `'${escapeQuotes(val ?? "")}'`;
   } else {
+    // TODO: Fix this at some point
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     return (val as any)?.toString() ?? "''";
   }
 };
@@ -119,13 +123,11 @@ export const interpretToFilter = <A>(dsl: Filter<A>): string => {
     case Kind.LessOrEqual:
     case Kind.Contains:
     case Kind.StartsWith:
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       return `/${dsl.field.toString()} ${dsl.kind} ${prepareValue(dsl.val)}`;
     case Kind.And:
     case Kind.Or:
       return `(${interpretToFilter(dsl.a)} ${dsl.kind} ${interpretToFilter(dsl.b)})`;
     case Kind.Presence:
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       return `/${dsl.field.toString()} ${dsl.kind}`;
     case Kind.Not:
       return `${dsl.kind}(${interpretToFilter(dsl.filter)})`;

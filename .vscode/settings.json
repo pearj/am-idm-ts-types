@@ -1,0 +1,13 @@
+{
+    "eslint.workingDirectories": [
+        {
+            "pattern": "./packages/*/"
+        }
+    ],
+    "cSpell.words": [
+        "openicf",
+        "openidm",
+        "sonarjs",
+        "Typesafe"
+    ]
+}

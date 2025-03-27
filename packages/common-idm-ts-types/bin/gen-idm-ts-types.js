@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable @typescript-eslint/no-require-imports */
 
 const path = require("path");
 const camelCase = require("camelcase");
@@ -37,32 +38,33 @@ const connectorObjectValueType = coalesce(idmTsCodeGen.useUnknownInsteadOfAnyFor
 const generateManagedTypeName = managedObjectName =>
   "Managed" +
   camelCase(managedObjectName, {
-    pascalCase: true
+    pascalCase: true,
   });
 const generateSystemTypeName = (connectorName, typeName) =>
   "System" +
   camelCase(connectorName, {
-    pascalCase: true
+    pascalCase: true,
   }) +
   camelCase(typeName, {
-    pascalCase: true
+    pascalCase: true,
   });
 const generateSystemObjName = (connectorName, typeName) =>
   camelCase(connectorName) +
   camelCase(typeName, {
-    pascalCase: true
+    pascalCase: true,
   });
 
 const generateSubTsTypeName = (objectBaseType, subType) =>
   objectBaseType +
   camelCase(subType, {
-    pascalCase: true
+    pascalCase: true,
   });
 
 const isManagedType = typeName => typeName.startsWith("Managed");
 
 const filterResourceCollection = resourceCollection => resourceCollection.filter(res => res.path.startsWith("managed/"));
 
+// eslint-disable-next-line sonarjs/slow-regex
 const provisionerRegex = /\.*\/provisioner.openicf-(.*)\.json.*/;
 
 function convertType(props, propName, originalObjectName, tsTypeName, subTypes) {
@@ -109,6 +111,7 @@ function convertType(props, propName, originalObjectName, tsTypeName, subTypes) 
         throw new Error(`Relationships are only supported for Managed Objects. Type ${tsTypeName}, property ${propName}`);
       }
       // Relationships can have multiple types, so we need to get all of the types
+      // eslint-disable-next-line no-case-declarations
       let relTypes = filterResourceCollection(props.resourceCollection)
         .map(mo => generateManagedTypeName(mo.path.replace("managed/", "")))
         .join(" | ");
@@ -177,7 +180,7 @@ function generateConnectorTypes(idmConfigDir, subConnectorTypes) {
         var newErr = Error("Failed to load connector file [" + conn + "]");
         newErr.stack += "\nCaused by: " + err.stack;
         throw newErr;
-      } 
+      }
     }
 
     const match = provisionerRegex.exec(conn);
@@ -218,9 +221,9 @@ function generateConnectorTypes(idmConfigDir, subConnectorTypes) {
             type: convertType(value, propName, fullName, tsType, subConnectorTypes),
             required: isRequired(value, propName, connObj),
             title: title,
-            description: description
+            description: description,
           };
-        })
+        }),
       };
     });
   });
@@ -265,9 +268,9 @@ function generateManagedTypes(idmConfigDir, subManagedTypes) {
           type: convertType(value, propName, mo.name, managedTypeName, subManagedTypes),
           required: isRequired(value, propName, mo.schema),
           title: title,
-          description: description
+          description: description,
         };
-      })
+      }),
     };
   });
 
@@ -301,9 +304,9 @@ function generateSubType(subType, subTypeName, originalObjectBaseName, propName,
         type: convertType(value, propertyName, subTypeName, subTsTypeName, subTypes),
         required: Array.isArray(subType.required) ? subType.required.includes(propertyName) : false,
         title: title,
-        description: description
+        description: description,
       };
-    })
+    }),
   });
 
   return subTsTypeName;
@@ -324,7 +327,7 @@ function generateIdmTsTypes() {
     managedObjects: managedIdmTypes,
     subManagedTypes: subManagedTypes,
     connectorObjects: connectorIdmTypes,
-    subConnectorTypes: subConnectorTypes
+    subConnectorTypes: subConnectorTypes,
   });
 
   // Load the prettier config
@@ -332,7 +335,7 @@ function generateIdmTsTypes() {
     // Prettify the generated IDM TS tpes
     const formatted = prettier.format(template, {
       ...options,
-      parser: "typescript"
+      parser: "typescript",
     });
 
     fs.writeFile(idmTsCodeGen.idmTsTypesOutputFile, formatted, err => {
