@@ -63,7 +63,7 @@ const isManagedType = typeName => typeName.startsWith("Managed");
 
 const filterResourceCollection = resourceCollection => resourceCollection.filter(res => res.path.startsWith("managed/"));
 
-const provisionerRegex = /\.*\/provisioner.openicf-(.*)\.json.*/;
+const provisionerRegex = /\.*[\\\/]provisioner.openicf-(.*)\.json.*/;
 
 function convertType(props, propName, originalObjectName, tsTypeName, subTypes) {
   var type;
