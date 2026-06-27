@@ -4,10 +4,98 @@ interface IDMObjectType<T extends string> extends IDMBaseObject {
   readonly _tag?: T;
 }
 
-type Fields<T> = Exclude<keyof T, "_tag"> & string;
-type ResultType<T extends IDMObjectType<string>, FieldTypes extends keyof T> = Pick<T, FieldTypes> &
-  IDMObjectType<Exclude<T["_tag"], undefined>> &
-  Revision;
+type Prev = [never, 0, 1, 2, 3, 4, 5, 6, 7]; // to decrement depth
+
+export type Paths<T, Depth extends number = 5, InRelationship extends boolean = false> = [Depth] extends [never]
+  ? never
+  : T extends null | undefined
+  ? never
+  : T extends Array<infer Element>
+  ? `*` | `*/${Paths<Element, Depth, InRelationship> & string}`
+  : T extends ReferenceType<infer Target, infer Defaults>
+  ? InRelationship extends true
+    ? `*`
+    : `*` | Paths<Target, Depth, true>
+  : T extends object
+  ? {
+      [K in Exclude<keyof T, "_tag"> & string]:
+        | K
+        | `${K}/${Paths<T[K], Prev[Depth], InRelationship> & string}`;
+    }[Exclude<keyof T, "_tag"> & string]
+  : never;
+
+export type Fields<T> = Paths<T> | "*" | "*_ref";
+
+type SplitPath<Path extends string> = Path extends `${infer Head}/${infer Tail}`
+  ? { head: Head; tail: Tail }
+  : { head: Path; tail: "" };
+
+type RelationshipKeys<T> = {
+  [K in keyof T]: NonNullable<T[K]> extends ReferenceMetadata | Array<ReferenceMetadata> ? K : never;
+}[keyof T];
+
+interface ReferenceMetadata {
+  readonly _ref: string;
+  readonly _refResourceCollection?: string;
+  readonly _refResourceId?: string;
+  readonly _refProperties?: {
+    readonly _id?: string;
+    readonly _rev?: string;
+  } & Record<string, unknown>;
+}
+
+type SelectedKeys<T, D, F extends string> =
+  | (F extends "*" ? keyof D : never)
+  | (F extends "*_ref" ? RelationshipKeys<T> : never)
+  | {
+      [P in F]: SplitPath<P>["head"] extends keyof T
+        ? SplitPath<P>["head"]
+        : never;
+    }[F];
+
+type SubPathsFor<K extends keyof T, T, D, F extends string> =
+  | (K extends keyof D ? (F extends "*" ? "" : never) : never)
+  | (K extends RelationshipKeys<T> ? (F extends "*_ref" ? "" : never) : never)
+  | (F extends K ? "" : never)
+  | (F extends `${K & string}/${infer Tail}` ? Tail : never);
+
+type ArraySubPaths<P extends string> = P extends `*/${infer Tail}`
+  ? Tail
+  : P extends "*"
+  ? ""
+  : never;
+
+type SelectValue<Val, SubF extends string> = [Val] extends [any]
+  ? Val extends null
+    ? null
+    : Val extends undefined
+    ? undefined
+    : SelectValueNonNullable<Val, SubF>
+  : never;
+
+type SelectValueNonNullable<Val, SubF extends string> =
+  Val extends Array<infer Element>
+    ? SelectValue<Element, ArraySubPaths<SubF>>[]
+    : Val extends ReferenceType<infer Target, infer Defaults>
+    ? "" extends SubF
+      ? ReferenceMetadata
+      : ReferenceType<SelectObject<Target, Defaults, SubF>, Defaults>
+    : "" extends SubF
+    ? Val
+    : Val extends object
+    ? SelectObject<Val, Val, SubF>
+    : Val;
+
+type SelectObject<T, D, F extends string> = {
+  [K in SelectedKeys<T, D, F> & keyof T]: SelectValue<T[K], SubPathsFor<K, T, D, F>>;
+};
+
+export type ResultType<
+  T extends IDMObjectType<string>,
+  D extends IDMObjectType<string>,
+  F extends string
+> = SelectObject<T, D, F> & IDMObjectType<Exclude<T["_tag"], undefined>> & Revision;
+
 type QueryFilterTypesafeParams<T extends IDMObjectType<string>> = { filter: Filter<T> };
 type QueryFilterExtended<T extends IDMObjectType<string>> = QueryFilter | (QueryFilterTypesafeParams<T> & QueryOpts);
 
@@ -35,7 +123,7 @@ export type WithOptionalId<A extends { _id: string }> = Omit<A, "_id"> & {
   _id?: string;
 };
 
-export type ReferenceType<T> = Partial<T> & {
+export type ReferenceType<T, D = T> = Partial<T> & {
   readonly _ref: string;
   readonly _refResourceCollection?: string;
   readonly _refResourceId?: string;
@@ -78,7 +166,7 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
    * @param options - Options object which must contain an array of checked fields
    * @returns The object with its type narrowed to given fields in the options  or `null` if not found.
    */
-  public read<F extends Fields<T>>(id: string, options: { readonly params?: object; readonly fields: [F, ...F[]] }): ResultType<T, F> | null;
+  public read<F extends Fields<T>>(id: string, options: { readonly params?: object; readonly fields: [F, ...F[]] }): ResultType<T, D, F> | null;
   
   /**
    * Reads and returns a resource object with unchecked fields in the options.
@@ -146,7 +234,7 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
     newResourceId: string | null,
     content: WithOptionalId<T>,
     options: { readonly params?: object; readonly fields: F[] }
-  ): ResultType<T, F>;
+  ): ResultType<T, D, F>;
 
   /**
    * This function creates a new resource object returning the newly created object with only the specified unchecked fields. The resulting type contains all possible fields as TypeScript isn't able to figure out which fields should be returned.
@@ -315,7 +403,7 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
     rev: string | null,
     value: CompositePatchOpts<T>,
     options: { readonly params?: object; readonly fields: F[] }
-  ): ResultType<T, F>;
+  ): ResultType<T, D, F>;
 
   /**
    * This function performs a partial modification of a managed or system object. Unlike the update function, only the modified attributes are provided, not the entire object. It returns the modified object with only the specified unchecked fields.
@@ -572,7 +660,7 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
     rev: string | null,
     value: WithOptionalId<T>,
     options: { readonly params?: object; readonly fields: F[] }
-  ): ResultType<T, F>;
+  ): ResultType<T, D, F>;
 
 
   /**
@@ -633,7 +721,7 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
     return openidm.update(`${this.type}/${id}`, rev, value, params, unCheckedFields ? unCheckedFields : fields);
   }
 
-  public delete<F extends Fields<T>>(id: string, rev: string | null, options: { readonly params?: object; readonly fields: F[] }): ResultType<T, F>;
+  public delete<F extends Fields<T>>(id: string, rev: string | null, options: { readonly params?: object; readonly fields: F[] }): ResultType<T, D, F>;
   public delete<F extends Fields<T>>(
     id: string,
     rev: string | null,
@@ -648,7 +736,7 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
     return openidm.delete(`${this.type}/${id}`, rev, params, unCheckedFields ? unCheckedFields : fields);
   }
 
-  public query<F extends Fields<T>>(params: QueryFilterExtended<T>, options: { readonly fields: F[] }): QueryResult<ResultType<T, F>>;
+  public query<F extends Fields<T>>(params: QueryFilterExtended<T>, options: { readonly fields: F[] }): QueryResult<ResultType<T, D, F>>;
   public query<F extends Fields<T>>(params: QueryFilterExtended<T>, options: { readonly unCheckedFields: string[] }): QueryResult<T & Revision>;
   public query<F extends Fields<T>>(params: QueryFilterExtended<T>): QueryResult<D & Revision>;
   public query<F extends Fields<T>>(

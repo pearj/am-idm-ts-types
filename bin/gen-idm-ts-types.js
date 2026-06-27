@@ -116,8 +116,13 @@ function convertType(props, propName, originalObjectName, tsTypeName, subTypes) 
         relTypes = `Record<string, ${managedObjectValueType}>`;
         const otherTypes = props.resourceCollection.map(obj => obj.path).join(", ");
         console.warn(`Unable to find managed object type(s) for ${propName}, specified types are [${otherTypes}], falling back to ${relTypes}`);
+        type = `ReferenceType<${relTypes}>`;
+      } else {
+        let relDefaults = filterResourceCollection(props.resourceCollection)
+          .map(mo => generateManagedTypeName(mo.path.replace("managed/", "")) + "Defaults")
+          .join(" | ");
+        type = `ReferenceType<${relTypes}, ${relDefaults}>`;
       }
-      type = `ReferenceType<${relTypes}>`;
       break;
     default:
       throw new Error("Unsupported type [" + schemaType + "] for property [" + propName + "]");
