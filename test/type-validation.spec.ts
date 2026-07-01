@@ -1,7 +1,22 @@
 import { IDMObject, Fields, ResultType, ReferenceType, idmObject } from "../lib/idm-ts";
-import { equals, presence } from "../lib/query-filter";
+import { equals, Filter, presence, startsWith } from "../lib/query-filter";
 
 // --- Mock schemas representing generated types ---
+
+export type SubManagedUserPreferences = {
+  // tslint:disable-next-line: no-duplicate-string
+  _tag?: "managed/user/preferences";
+
+  /**
+   * Send me news and updates
+   */
+  updates?: boolean;
+
+  /**
+   * Send me special offers and services
+   */
+  marketing?: boolean;
+};
 
 export type ManagedUserDefaults = {
   _tag?: "managed/user";
@@ -10,6 +25,7 @@ export type ManagedUserDefaults = {
   givenName: string;
   sn: string;
   mail: string;
+  preferences?: SubManagedUserPreferences;
 } & IDMBaseObject;
 
 export type ManagedUserNonDefaults = {
@@ -147,8 +163,11 @@ presence<ManagedUser, "mail">("mail");
 presence<ManagedUser, "/mail">("/mail");
 
 // 2. Subtype fields and nested array paths are fine (no * wildcard needed)
+// @ts-expect-error - firstType is an array, must use /[ syntax
 equals<ManagedSubTypeTest, "firstType/something">("firstType/something", "foo");
+// @ts-expect-error - firstType is an array, must use /[ syntax
 equals<ManagedSubTypeTest, "/firstType/something">("/firstType/something", "foo");
+// @ts-expect-error - subArray is an array, must use /[ syntax
 equals<ManagedSubTypeTest, "firstType/subArray/a">("firstType/subArray/a", "bar");
 
 // 3. Relationships are NOT allowed
@@ -169,3 +188,23 @@ presence<ManagedUser, "reports/userName">("reports/userName");
 equals<ManagedUser, "userName">("userName", "joel"); // OK
 // @ts-expect-error - userName expects string, not number
 equals<ManagedUser, "userName">("userName", 123);
+
+// 6. Array search syntax filters
+equals<ManagedSubTypeTest, "/firstType/[subArray/[a">("/firstType/[subArray/[a", "zxc");
+startsWith<ManagedSubTypeTest, "/firstType/[subArray/[a">("/firstType/[subArray/[a", "zxc");
+presence<ManagedSubTypeTest, "/firstType/[subArray/[a">("/firstType/[subArray/[a");
+
+// First level nested search
+startsWith<ManagedSubTypeTest, "/firstType/[something">("/firstType/[something", "Test");
+
+// Two levels, with Record property (semiDefinedObj)
+startsWith<ManagedSubTypeTest, "/firstType/[semiDefinedObj/bob">("/firstType/[semiDefinedObj/bob", "ye");
+
+// Single level presence check
+presence<ManagedSubTypeTest, "/firstType/[subArray">("/firstType/[subArray");
+
+const managedSubTypeObj = idmObject<ManagedSubTypeTest, ManagedSubTypeTestDefaults>("managed/SubTypeTest");
+const newLocal: Filter<ManagedSubTypeTest> = equals("/firstType/[subArray/[a", "zxc");
+
+const userMarketing: Filter<ManagedUser> = equals("/preferences/marketing", true);
+const userUpdates: Filter<ManagedUser> = equals("/preferences/updates", true);

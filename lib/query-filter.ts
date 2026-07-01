@@ -25,6 +25,20 @@ type NonRelationshipKeys<T> = {
   [K in Exclude<keyof T, "_tag"> & string]: IsRelationship<T[K]> extends true ? never : K;
 }[Exclude<keyof T, "_tag"> & string];
 
+type NormalizePath<S extends string> = S extends `${infer Head}/[${infer Tail}`
+  ? NormalizePath<`${Head}/${Tail}`>
+  : S extends `${infer Head}[${infer Tail}`
+  ? NormalizePath<`${Head}/${Tail}`>
+  : S;
+
+type QueryPathsForKey<K extends string, V, Depth extends number> =
+  NonNullable<V> extends Array<infer Element>
+    ? K 
+      | `${K}/[${QueryPaths<Element, Depth> & string}`
+    : NonNullable<V> extends object
+    ? K | `${K}/${QueryPaths<V, Depth> & string}`
+    : K;
+
 export type QueryPaths<T, Depth extends number = 5> = [Depth] extends [never]
   ? never
   : T extends null | undefined
@@ -35,9 +49,7 @@ export type QueryPaths<T, Depth extends number = 5> = [Depth] extends [never]
   ? never
   : T extends object
   ? {
-      [K in NonRelationshipKeys<T>]:
-        | K
-        | `${K}/${QueryPaths<T[K], Prev[Depth]> & string}`;
+      [K in NonRelationshipKeys<T>]: QueryPathsForKey<K, T[K], Prev[Depth]>;
     }[NonRelationshipKeys<T>]
   : never;
 
@@ -45,7 +57,7 @@ export type FilterField<T> = QueryPaths<T> | `/${QueryPaths<T> & string}`;
 
 type StripLeadingSlash<S extends string> = S extends `/${infer Rest}` ? Rest : S;
 
-export type PathValue<T, Path extends string> = PathValueHelper<T, StripLeadingSlash<Path>>;
+export type PathValue<T, Path extends string> = PathValueHelper<T, NormalizePath<StripLeadingSlash<Path>>>;
 
 type PathValueHelper<T, Path extends string> = [T] extends [any]
   ? T extends null | undefined
@@ -175,15 +187,21 @@ export const interpretToFilter = <A>(dsl: Filter<A>): string => {
     case Kind.Less:
     case Kind.LessOrEqual:
     case Kind.Contains:
-    case Kind.StartsWith:
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-      return `${formatFieldName(dsl.field.toString())} ${dsl.kind} ${prepareValue(dsl.val)}`;
+    case Kind.StartsWith: {
+      const fieldStr = formatFieldName(dsl.field.toString());
+      const openBracketsCount = (fieldStr.match(/\[/g) || []).length;
+      const baseFilter = `${fieldStr} ${dsl.kind} ${prepareValue(dsl.val)}`;
+      return openBracketsCount > 0 ? `${baseFilter}${"]".repeat(openBracketsCount)}` : baseFilter;
+    }
     case Kind.And:
     case Kind.Or:
       return `(${interpretToFilter(dsl.a)} ${dsl.kind} ${interpretToFilter(dsl.b)})`;
-    case Kind.Presence:
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-      return `${formatFieldName(dsl.field.toString())} ${dsl.kind}`;
+    case Kind.Presence: {
+      const fieldStr = formatFieldName(dsl.field.toString());
+      const openBracketsCount = (fieldStr.match(/\[/g) || []).length;
+      const baseFilter = `${fieldStr} ${dsl.kind}`;
+      return openBracketsCount > 0 ? `${baseFilter}${"]".repeat(openBracketsCount)}` : baseFilter;
+    }
     case Kind.Not:
       return `${dsl.kind}(${interpretToFilter(dsl.filter)})`;
     case Kind.True:
