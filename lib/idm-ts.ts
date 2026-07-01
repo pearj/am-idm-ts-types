@@ -18,9 +18,11 @@ export type Paths<T, Depth extends number = 5, InRelationship extends boolean = 
     : `*` | Paths<Target, Depth, true>
   : T extends object
   ? {
-      [K in Exclude<keyof T, "_tag"> & string]:
-        | K
-        | `${K}/${Paths<T[K], Prev[Depth], InRelationship> & string}`;
+      [K in Exclude<keyof T, "_tag"> & string]: K extends RelationshipKeys<T>
+        ? InRelationship extends true
+          ? never
+          : K | `${K}/${Paths<T[K], Prev[Depth], InRelationship> & string}`
+        : K;
     }[Exclude<keyof T, "_tag"> & string]
   : never;
 
@@ -70,6 +72,8 @@ type SelectValue<Val, SubF extends string> = [Val] extends [any]
     ? null
     : Val extends undefined
     ? undefined
+    : [SubF] extends [never]
+    ? Val
     : SelectValueNonNullable<Val, SubF>
   : never;
 

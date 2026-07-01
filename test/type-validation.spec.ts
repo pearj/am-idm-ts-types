@@ -1,4 +1,5 @@
-import { IDMObject, Fields, ResultType, ReferenceType } from "../lib/idm-ts";
+import { IDMObject, Fields, ResultType, ReferenceType, idmObject } from "../lib/idm-ts";
+import { equals, presence } from "../lib/query-filter";
 
 // --- Mock schemas representing generated types ---
 
@@ -103,8 +104,8 @@ if (user5) {
   user5.manager?.manager;
 }
 
-// 6. Subtype fields and nested array wildcards (subtypes do not have relationship depth limits)
-const st1 = subTypeObj.read("123", { fields: ["firstType/*/something", "firstType/*/subArray/*/a"] });
+// 6. Subtype fields (subtypes do not support nested field selection; selecting the subtype base returns the entire subtype)
+const st1 = subTypeObj.read("123", { fields: ["firstType"] });
 if (st1) {
   const firstType = st1.firstType;
   if (firstType && firstType.length > 0) {
@@ -112,13 +113,17 @@ if (st1) {
     const subArray = firstType[0].subArray;
     if (subArray && subArray.length > 0) {
       const a: string | undefined = subArray[0].a;
-      // @ts-expect-error - 'b' was not selected
-      subArray[0].b;
+      const b: string | undefined = subArray[0].b; // now accessible since full object is returned
     }
-    // @ts-expect-error - 'arOfString' was not selected
-    firstType[0].arOfString;
+    const arOfString: string[] | undefined = firstType[0].arOfString; // now accessible
   }
 }
+
+// @ts-expect-error - firstType/something is not valid because subtypes cannot be traversed in field selection (invalid)
+subTypeObj.read("123", { fields: ["firstType/something"] });
+
+// @ts-expect-error - firstType/*/something is not valid because subtypes cannot be traversed in field selection (invalid)
+subTypeObj.read("123", { fields: ["firstType/*/something"] });
 
 // 7. Enforcing relationship limit: only 1 level deep relationship is allowed
 // @ts-expect-error - manager/manager/givenName goes 2 levels deep in relationships
@@ -127,10 +132,40 @@ userObj.read("123", { fields: ["manager/manager/givenName"] });
 // @ts-expect-error - reports/*/reports/*/givenName goes 2 levels deep in relationships
 userObj.read("123", { fields: ["reports/*/reports/*/givenName"] });
 
-// This is fine: manager/manager selects the manager relationship at level 1 (allowed)
-const user7 = userObj.read("123", { fields: ["manager/manager"] });
-if (user7) {
-  const innerManager = user7.manager?.manager;
-  // @ts-expect-error - cannot access givenName on nested relationship reference since we can't select its fields
-  innerManager?.givenName;
-}
+// @ts-expect-error - manager/manager goes 2 levels deep in relationships (invalid)
+userObj.read("123", { fields: ["manager/manager"] });
+
+// @ts-expect-error - reports/*/reports goes 2 levels deep in relationships (invalid)
+userObj.read("123", { fields: ["reports/*/reports"] });
+
+// --- Query Filter Type Checking Tests ---
+
+// 1. Direct fields and leading slashes are fine
+equals<ManagedUser, "userName">("userName", "joel");
+equals<ManagedUser, "/userName">("/userName", "joel");
+presence<ManagedUser, "mail">("mail");
+presence<ManagedUser, "/mail">("/mail");
+
+// 2. Subtype fields and nested array paths are fine (no * wildcard needed)
+equals<ManagedSubTypeTest, "firstType/something">("firstType/something", "foo");
+equals<ManagedSubTypeTest, "/firstType/something">("/firstType/something", "foo");
+equals<ManagedSubTypeTest, "firstType/subArray/a">("firstType/subArray/a", "bar");
+
+// 3. Relationships are NOT allowed
+// @ts-expect-error - manager is a relationship field
+equals<ManagedUser, "manager">("manager", {} as any);
+// @ts-expect-error - reports is a relationship field
+presence<ManagedUser, "reports">("reports");
+// @ts-expect-error - manager with leading slash not allowed
+equals<ManagedUser, "/manager">("/manager", {} as any);
+
+// 4. Traversing relationships is NOT allowed
+// @ts-expect-error - manager/givenName traverses a relationship
+equals<ManagedUser, "manager/givenName">("manager/givenName", "joel");
+// @ts-expect-error - reports/userName traverses a relationship
+presence<ManagedUser, "reports/userName">("reports/userName");
+
+// 5. Value type checking is strictly enforced
+equals<ManagedUser, "userName">("userName", "joel"); // OK
+// @ts-expect-error - userName expects string, not number
+equals<ManagedUser, "userName">("userName", 123);
