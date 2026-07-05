@@ -127,19 +127,19 @@ function convertType(props, propName, originalObjectName, tsTypeName, subTypes) 
         throw new Error(`Relationships are only supported for Managed Objects. Type ${tsTypeName}, property ${propName}`);
       }
       // Relationships can have multiple types, so we need to get all of the types
-      let relTypes = filterResourceCollection(props.resourceCollection)
-        .map((mo) => generateManagedTypeName(mo.path.replace("managed/", "")))
-        .join(" | ");
-      if (!relTypes) {
-        relTypes = `Record<string, ${managedObjectValueType}>`;
+      const managedCollections = filterResourceCollection(props.resourceCollection);
+      if (managedCollections.length === 0) {
+        const fallbackVal = `Record<string, ${managedObjectValueType}>`;
         const otherTypes = props.resourceCollection.map((obj) => obj.path).join(", ");
-        console.warn(`Unable to find managed object type(s) for ${propName}, specified types are [${otherTypes}], falling back to ${relTypes}`);
-        type = `ReferenceType<${relTypes}>`;
+        console.warn(`Unable to find managed object type(s) for ${propName}, specified types are [${otherTypes}], falling back to ${fallbackVal}`);
+        type = `ReferenceType<${fallbackVal}>`;
       } else {
-        let relDefaults = filterResourceCollection(props.resourceCollection)
-          .map((mo) => generateManagedTypeName(mo.path.replace("managed/", "")) + "Defaults")
+        type = managedCollections
+          .map((mo) => {
+            const name = generateManagedTypeName(mo.path.replace("managed/", ""));
+            return `ReferenceType<${name}, ${name}Defaults>`;
+          })
           .join(" | ");
-        type = `ReferenceType<${relTypes}, ${relDefaults}>`;
       }
       break;
     }

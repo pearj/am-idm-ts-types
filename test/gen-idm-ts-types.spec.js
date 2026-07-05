@@ -223,7 +223,7 @@ describe("gen-idm-ts-types unit tests", () => {
 
       expect(result).toEqual({
         nullable: false,
-        types: ["ReferenceType<ManagedUser | ManagedOrganization, ManagedUserDefaults | ManagedOrganizationDefaults>"],
+        types: ["ReferenceType<ManagedUser, ManagedUserDefaults> | ReferenceType<ManagedOrganization, ManagedOrganizationDefaults>"],
       });
     });
 
