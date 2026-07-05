@@ -1,0 +1,703 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`gen-idm-ts-types unit tests integration test - generateIdmTsTypes should successfully generate Typescript types from the seed configuration files: idm.ts 1`] = `
+"// Generated file
+import {
+  idmObject,
+  ReferenceType,
+} from "@agiledigital/idm-ts-types/lib/idm-ts";
+
+/**
+ * SubTypeTest Managed Object Default fields
+ *
+ * These fields are returned when '*' is used or no fields are specified.
+ */
+export type ManagedSubTypeTestDefaults = {
+  // tslint:disable-next-line: no-duplicate-string
+  _tag?: "managed/SubTypeTest";
+
+  /**
+   * FirstType
+   */
+  firstType?: SubManagedSubTypeTestFirstType[] | null;
+} & IDMBaseObject;
+
+/**
+ * SubTypeTest Managed Object Non Default fields
+ *
+ * These fields are only returned when explicitly mentioned or in the relationship case '*_ref' is used.
+ */
+export type ManagedSubTypeTestNonDefaults = {};
+
+/**
+ * SubTypeTest Managed Object
+ */
+export type ManagedSubTypeTest = ManagedSubTypeTestDefaults &
+  ManagedSubTypeTestNonDefaults;
+
+/**
+ * assignment Managed Object Default fields
+ *
+ * These fields are returned when '*' is used or no fields are specified.
+ */
+export type ManagedAssignmentDefaults = {
+  // tslint:disable-next-line: no-duplicate-string
+  _tag?: "managed/assignment";
+
+  /**
+   * Name  
+   *
+   * The assignment ID
+   */
+  _id?: string;
+
+  /**
+   * Name  
+   *
+   * The assignment name, used for display purposes.
+   */
+  name: string;
+
+  /**
+   * Description  
+   *
+   * The assignment description, used for display purposes.
+   */
+  description: string;
+
+  /**
+   * Mapping  
+   *
+   * The name of the mapping this assignment applies to
+   */
+  mapping: string;
+
+  /**
+   * Assignment Attributes  
+   *
+   * The attributes operated on by this assignment.
+   */
+  attributes?: SubManagedAssignmentAttributes[];
+
+  /**
+   * Link Qualifiers  
+   *
+   * Conditional link qualifiers to restrict this assignment to.
+   */
+  linkQualifiers?: string[];
+} & IDMBaseObject;
+
+/**
+ * assignment Managed Object Non Default fields
+ *
+ * These fields are only returned when explicitly mentioned or in the relationship case '*_ref' is used.
+ */
+export type ManagedAssignmentNonDefaults = {
+  /**
+   * Managed Roles
+   */
+  roles?: ReferenceType<ManagedRole, ManagedRoleDefaults>[];
+};
+
+/**
+ * assignment Managed Object
+ */
+export type ManagedAssignment = ManagedAssignmentDefaults &
+  ManagedAssignmentNonDefaults;
+
+/**
+ * pendingRelationships Managed Object Default fields
+ *
+ * These fields are returned when '*' is used or no fields are specified.
+ */
+export type ManagedPendingRelationshipsDefaults = {
+  // tslint:disable-next-line: no-duplicate-string
+  _tag?: "managed/pendingRelationships";
+
+  /**
+   * Creation Time
+   */
+  creationTime: string;
+
+  /**
+   * Source Managed Object
+   */
+  sourceCollection: string;
+
+  /**
+   * Source Managed Object Relationship
+   */
+  sourceRelationshipProperty: string;
+
+  /**
+   * Source Unique Key
+   */
+  sourceUniqueKey: string;
+
+  /**
+   * Source Query Filter
+   */
+  sourceQueryFilter?: string;
+
+  /**
+   * Target Managed Object
+   */
+  targetCollection: string;
+
+  /**
+   * Target Unique Key
+   */
+  targetUniqueKey: string;
+
+  /**
+   * Pending Relationship Has Been Actioned
+   */
+  actionTime?: string;
+} & IDMBaseObject;
+
+/**
+ * pendingRelationships Managed Object Non Default fields
+ *
+ * These fields are only returned when explicitly mentioned or in the relationship case '*_ref' is used.
+ */
+export type ManagedPendingRelationshipsNonDefaults = {};
+
+/**
+ * pendingRelationships Managed Object
+ */
+export type ManagedPendingRelationships = ManagedPendingRelationshipsDefaults &
+  ManagedPendingRelationshipsNonDefaults;
+
+/**
+ * role Managed Object Default fields
+ *
+ * These fields are returned when '*' is used or no fields are specified.
+ */
+export type ManagedRoleDefaults = {
+  // tslint:disable-next-line: no-duplicate-string
+  _tag?: "managed/role";
+
+  /**
+   * Name  
+   *
+   * Role ID
+   */
+  _id?: string;
+
+  /**
+   * Name  
+   *
+   * The role name, used for display purposes.
+   */
+  name: string;
+
+  /**
+   * Description  
+   *
+   * The role description, used for display purposes.
+   */
+  description?: string;
+
+  /**
+   * Condition  
+   *
+   * A conditional filter for this role
+   */
+  condition?: string;
+
+  /**
+   * Temporal Constraints  
+   *
+   * An array of temporal constraints for a role
+   */
+  temporalConstraints?: SubManagedRoleTemporalConstraints[];
+} & IDMBaseObject;
+
+/**
+ * role Managed Object Non Default fields
+ *
+ * These fields are only returned when explicitly mentioned or in the relationship case '*_ref' is used.
+ */
+export type ManagedRoleNonDefaults = {
+  /**
+   * Role Members
+   */
+  members?: ReferenceType<ManagedUser, ManagedUserDefaults>[];
+
+  /**
+   * Authorization Role Members
+   */
+  authzMembers?: ReferenceType<ManagedUser, ManagedUserDefaults>[];
+
+  /**
+   * Managed Assignments
+   */
+  assignments?: ReferenceType<ManagedAssignment, ManagedAssignmentDefaults>[];
+};
+
+/**
+ * role Managed Object
+ */
+export type ManagedRole = ManagedRoleDefaults & ManagedRoleNonDefaults;
+
+/**
+ * user Managed Object Default fields
+ *
+ * These fields are returned when '*' is used or no fields are specified.
+ */
+export type ManagedUserDefaults = {
+  // tslint:disable-next-line: no-duplicate-string
+  _tag?: "managed/user";
+
+  /**
+   * User ID
+   */
+  _id?: string;
+
+  /**
+   * Username
+   */
+  userName: string;
+
+  /**
+   * Password
+   */
+  password?: string;
+
+  /**
+   * Password Hash History
+   */
+  passwordHistory?: Record<string, any>[];
+
+  /**
+   * Last Password Change Date
+   */
+  lastPasswordChange?: string;
+
+  /**
+   * User who last changed the password
+   */
+  lastPasswordChangeUser?: string;
+
+  /**
+   * First Name
+   */
+  givenName: string;
+
+  /**
+   * Last Name
+   */
+  sn: string;
+
+  /**
+   * Email Address
+   */
+  mail: string;
+
+  /**
+   * Description
+   */
+  description?: string;
+
+  /**
+   * Status
+   */
+  accountStatus?: string;
+
+  /**
+   * Telephone Number
+   */
+  telephoneNumber?: string;
+
+  /**
+   * Address 1
+   */
+  postalAddress?: string;
+
+  /**
+   * Address 2
+   */
+  address2?: string;
+
+  /**
+   * City
+   */
+  city?: string;
+
+  /**
+   * Postal Code
+   */
+  postalCode?: string;
+
+  /**
+   * Country
+   */
+  country?: string;
+
+  /**
+   * State/Province
+   */
+  stateProvince?: string;
+
+  /**
+   * Effective Roles
+   */
+  effectiveRoles?: Record<string, any>[];
+
+  /**
+   * Effective Assignments
+   */
+  effectiveAssignments?: Record<string, any>[];
+
+  /**
+   * Last Sync timestamp
+   */
+  lastSync?: SubManagedUserLastSync;
+
+  /**
+   * KBA Info
+   */
+  kbaInfo?: SubManagedUserKbaInfo[];
+
+  /**
+   * Preferences
+   */
+  preferences?: SubManagedUserPreferences;
+
+  /**
+   * Safe To Sync  
+   *
+   * This flag is used to determine when all the dependencies of this user have been linked and are safe to sync to a downstream system
+   */
+  safeToSync?: boolean;
+} & IDMBaseObject;
+
+/**
+ * user Managed Object Non Default fields
+ *
+ * These fields are only returned when explicitly mentioned or in the relationship case '*_ref' is used.
+ */
+export type ManagedUserNonDefaults = {
+  /**
+   * Provisioning Roles
+   */
+  roles?: ReferenceType<ManagedRole, ManagedRoleDefaults>[];
+
+  /**
+   * Manager
+   */
+  manager?: ReferenceType<ManagedUser, ManagedUserDefaults>;
+
+  /**
+   * Authorization Roles
+   */
+  authzRoles?: ReferenceType<Record<string, any>>[];
+
+  /**
+   * Direct Reports
+   */
+  reports?: ReferenceType<ManagedUser, ManagedUserDefaults>[];
+
+  /**
+   * Consented Mappings
+   */
+  consentedMappings?: SubManagedUserConsentedMappings[];
+};
+
+/**
+ * user Managed Object
+ */
+export type ManagedUser = ManagedUserDefaults & ManagedUserNonDefaults;
+
+/**
+ * SubTypeTest/firstType Sub Type of {@link ManagedSubTypeTest}
+ */
+export type SubManagedSubTypeTestFirstType = {
+  // tslint:disable-next-line: no-duplicate-string
+  _tag?: "managed/SubTypeTest/firstType";
+
+  /**
+   * Something yeah
+   */
+  something: string;
+
+  /**
+   * Woot
+   */
+  subArray?: SubManagedSubTypeTestFirstTypeSubArray[];
+
+  semiDefinedObj?: Record<string, any>;
+
+  /**
+   * Array of String
+   */
+  arOfString?: string[];
+};
+
+/**
+ * SubTypeTest/firstType/subArray Sub Type of {@link SubManagedSubTypeTestFirstType}
+ */
+export type SubManagedSubTypeTestFirstTypeSubArray = {
+  // tslint:disable-next-line: no-duplicate-string
+  _tag?: "managed/SubTypeTest/firstType/subArray";
+
+  /**
+   * A bit
+   */
+  a?: string;
+
+  /**
+   * b bit
+   */
+  b?: string;
+};
+
+/**
+ * assignment/attributes Sub Type of {@link ManagedAssignment}
+ */
+export type SubManagedAssignmentAttributes = {
+  // tslint:disable-next-line: no-duplicate-string
+  _tag?: "managed/assignment/attributes";
+
+  /**
+   * Assignment operation
+   */
+  assignmentOperation?: string;
+
+  /**
+   * Unassignment operation
+   */
+  unassignmentOperation?: string;
+
+  /**
+   * Name
+   */
+  name?: string;
+
+  /**
+   * Value
+   */
+  value?: string;
+};
+
+/**
+ * role/temporalConstraints Sub Type of {@link ManagedRole}
+ */
+export type SubManagedRoleTemporalConstraints = {
+  // tslint:disable-next-line: no-duplicate-string
+  _tag?: "managed/role/temporalConstraints";
+
+  /**
+   * Duration
+   */
+  duration: string;
+};
+
+/**
+ * user/consentedMappings Sub Type of {@link ManagedUser}
+ */
+export type SubManagedUserConsentedMappings = {
+  // tslint:disable-next-line: no-duplicate-string
+  _tag?: "managed/user/consentedMappings";
+
+  /**
+   * Mapping
+   */
+  mapping: string;
+
+  /**
+   * Consent Date
+   */
+  consentDate: string;
+};
+
+/**
+ * user/kbaInfo Sub Type of {@link ManagedUser}
+ */
+export type SubManagedUserKbaInfo = {
+  // tslint:disable-next-line: no-duplicate-string
+  _tag?: "managed/user/kbaInfo";
+
+  /**
+   * Answer
+   */
+  answer?: string;
+
+  /**
+   * Custom question
+   */
+  customQuestion?: string;
+
+  /**
+   * Question ID
+   */
+  questionId?: string;
+};
+
+/**
+ * user/lastSync Sub Type of {@link ManagedUser}
+ */
+export type SubManagedUserLastSync = {
+  // tslint:disable-next-line: no-duplicate-string
+  _tag?: "managed/user/lastSync";
+
+  /**
+   * Effective Assignments
+   */
+  effectiveAssignments?: Record<string, any>[];
+
+  /**
+   * Timestamp
+   */
+  timestamp?: string;
+};
+
+/**
+ * user/preferences Sub Type of {@link ManagedUser}
+ */
+export type SubManagedUserPreferences = {
+  // tslint:disable-next-line: no-duplicate-string
+  _tag?: "managed/user/preferences";
+
+  /**
+   * Send me news and updates
+   */
+  updates?: boolean;
+
+  /**
+   * Send me special offers and services
+   */
+  marketing?: boolean;
+};
+
+/**
+ * scim/account Connector Object Type for scim connector
+ */
+export type SystemScimAccount = {
+  // tslint:disable-next-line: no-duplicate-string
+  _tag?: "system/scim/account";
+
+  phoneNumbers?: Record<string, any>[];
+
+  active?: boolean;
+
+  groups?: Record<string, any>[];
+
+  costCenter?: string;
+
+  emails?: Record<string, any>[];
+
+  division?: string;
+
+  employeeNumber?: string;
+
+  organization?: string;
+
+  profileUrl?: string;
+
+  userType?: string;
+
+  x509Certificates?: Record<string, any>[];
+
+  manager?: Record<string, any>;
+
+  userName: string;
+
+  timezone?: string;
+
+  photos?: Record<string, any>[];
+
+  displayName?: string;
+
+  __PASSWORD__?: string;
+
+  meta?: Record<string, any>;
+
+  entitlements?: Record<string, any>[];
+
+  department?: string;
+
+  ims?: Record<string, any>[];
+
+  name?: Record<string, any>;
+
+  nickName?: string;
+
+  locale?: string;
+
+  roles?: Record<string, any>[];
+
+  preferredLanguage?: string;
+
+  addresses?: Record<string, any>[];
+
+  title?: string;
+
+  externalId?: string;
+} & IDMBaseObject;
+
+/**
+ * scim/group Connector Object Type for scim connector
+ */
+export type SystemScimGroup = {
+  // tslint:disable-next-line: no-duplicate-string
+  _tag?: "system/scim/group";
+
+  displayName: string;
+
+  meta?: Record<string, any>;
+
+  members?: Record<string, any>[];
+
+  externalId?: string;
+} & IDMBaseObject;
+
+/**
+ * UsersWithManagers/__ACCOUNT__ Connector Object Type for UsersWithManagers connector
+ */
+export type SystemUsersWithManagersAccount = {
+  // tslint:disable-next-line: no-duplicate-string
+  _tag?: "system/UsersWithManagers/__ACCOUNT__";
+
+  Manager?: string;
+
+  __NAME__?: string;
+
+  Email?: string;
+
+  Last_Name?: string;
+
+  First_Name?: string;
+} & IDMBaseObject;
+
+export const idm = {
+  ...openidm,
+  managed: {
+    SubTypeTest: idmObject<ManagedSubTypeTest, ManagedSubTypeTestDefaults>(
+      "managed/SubTypeTest",
+    ),
+    assignment: idmObject<ManagedAssignment, ManagedAssignmentDefaults>(
+      "managed/assignment",
+    ),
+    pendingRelationships: idmObject<
+      ManagedPendingRelationships,
+      ManagedPendingRelationshipsDefaults
+    >("managed/pendingRelationships"),
+    role: idmObject<ManagedRole, ManagedRoleDefaults>("managed/role"),
+    user: idmObject<ManagedUser, ManagedUserDefaults>("managed/user"),
+  },
+  system: {
+    scimAccount: idmObject<SystemScimAccount, SystemScimAccount>(
+      "system/scim/account",
+    ),
+    scimGroup: idmObject<SystemScimGroup, SystemScimGroup>("system/scim/group"),
+    usersWithManagersAccount: idmObject<
+      SystemUsersWithManagersAccount,
+      SystemUsersWithManagersAccount
+    >("system/UsersWithManagers/__ACCOUNT__"),
+  },
+};
+
+export default idm;
+"
+`;

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Filter, interpretToFilter } from "./query-filter";
 
 interface IDMObjectType<T extends string> extends IDMBaseObject {
@@ -9,28 +10,27 @@ type Prev = [never, 0, 1, 2, 3, 4, 5, 6, 7]; // to decrement depth
 export type Paths<T, Depth extends number = 5, InRelationship extends boolean = false> = [Depth] extends [never]
   ? never
   : T extends null | undefined
-  ? never
-  : T extends Array<infer Element>
-  ? `*` | `*/${Paths<Element, Depth, InRelationship> & string}`
-  : T extends ReferenceType<infer Target, infer Defaults>
-  ? InRelationship extends true
-    ? `*`
-    : `*` | Paths<Target, Depth, true>
-  : T extends object
-  ? {
-      [K in Exclude<keyof T, "_tag"> & string]: K extends RelationshipKeys<T>
+    ? never
+    : T extends Array<infer Element>
+      ? `*` | `*/${Paths<Element, Depth, InRelationship> & string}`
+      : // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        T extends ReferenceType<infer Target, infer Defaults>
         ? InRelationship extends true
-          ? never
-          : K | `${K}/${Paths<T[K], Prev[Depth], InRelationship> & string}`
-        : K;
-    }[Exclude<keyof T, "_tag"> & string]
-  : never;
+          ? `*`
+          : `*` | Paths<Target, Depth, true>
+        : T extends object
+          ? {
+              [K in Exclude<keyof T, "_tag"> & string]: K extends RelationshipKeys<T>
+                ? InRelationship extends true
+                  ? never
+                  : K | `${K}/${Paths<T[K], Prev[Depth], InRelationship> & string}`
+                : K;
+            }[Exclude<keyof T, "_tag"> & string]
+          : never;
 
 export type Fields<T> = Paths<T> | "*" | "*_ref";
 
-type SplitPath<Path extends string> = Path extends `${infer Head}/${infer Tail}`
-  ? { head: Head; tail: Tail }
-  : { head: Path; tail: "" };
+type SplitPath<Path extends string> = Path extends `${infer Head}/${infer Tail}` ? { head: Head; tail: Tail } : { head: Path; tail: "" };
 
 type RelationshipKeys<T> = {
   [K in keyof T]: NonNullable<T[K]> extends ReferenceMetadata | Array<ReferenceMetadata> ? K : never;
@@ -50,9 +50,7 @@ type SelectedKeys<T, D, F extends string> =
   | (F extends "*" ? keyof D : never)
   | (F extends "*_ref" ? RelationshipKeys<T> : never)
   | {
-      [P in F]: SplitPath<P>["head"] extends keyof T
-        ? SplitPath<P>["head"]
-        : never;
+      [P in F]: SplitPath<P>["head"] extends keyof T ? SplitPath<P>["head"] : never;
     }[F];
 
 type SubPathsFor<K extends keyof T, T, D, F extends string> =
@@ -61,72 +59,70 @@ type SubPathsFor<K extends keyof T, T, D, F extends string> =
   | (F extends K ? "" : never)
   | (F extends `${K & string}/${infer Tail}` ? Tail : never);
 
-type ArraySubPaths<P extends string> = P extends `*/${infer Tail}`
-  ? Tail
-  : P extends "*"
-  ? ""
-  : never;
+type ArraySubPaths<P extends string> = P extends `*/${infer Tail}` ? Tail : P extends "*" ? "" : never;
 
 type SelectValue<Val, SubF extends string> = [Val] extends [any]
   ? Val extends null
     ? null
     : Val extends undefined
-    ? undefined
-    : [SubF] extends [never]
-    ? Val
-    : SelectValueNonNullable<Val, SubF>
+      ? undefined
+      : [SubF] extends [never]
+        ? Val
+        : SelectValueNonNullable<Val, SubF>
   : never;
 
 type SelectValueNonNullable<Val, SubF extends string> =
   Val extends Array<infer Element>
     ? SelectValue<Element, ArraySubPaths<SubF>>[]
     : Val extends ReferenceType<infer Target, infer Defaults>
-    ? "" extends SubF
-      ? ReferenceMetadata
-      : ReferenceType<SelectObject<Target, Defaults, SubF>, Defaults>
-    : "" extends SubF
-    ? Val
-    : Val extends object
-    ? SelectObject<Val, Val, SubF>
-    : Val;
+      ? "" extends SubF
+        ? ReferenceMetadata
+        : ReferenceType<SelectObject<Target, Defaults, SubF>, Defaults>
+      : "" extends SubF
+        ? Val
+        : Val extends object
+          ? SelectObject<Val, Val, SubF>
+          : Val;
 
 type SelectObject<T, D, F extends string> = {
   [K in SelectedKeys<T, D, F> & keyof T]: SelectValue<T[K], SubPathsFor<K, T, D, F>>;
 };
 
-export type ResultType<
-  T extends IDMObjectType<string>,
-  D extends IDMObjectType<string>,
-  F extends string
-> = SelectObject<T, D, F> & IDMObjectType<Exclude<T["_tag"], undefined>> & Revision;
+export type ResultType<T extends IDMObjectType<string>, D extends IDMObjectType<string>, F extends string> = SelectObject<T, D, F> &
+  IDMObjectType<Exclude<T["_tag"], undefined>> &
+  Revision;
 
 type QueryFilterTypesafeParams<T extends IDMObjectType<string>> = { filter: Filter<T> };
 type QueryFilterExtended<T extends IDMObjectType<string>> = QueryFilter | (QueryFilterTypesafeParams<T> & QueryOpts);
 
-export type CheckedPatchOpts<T> = {
-  operation: PatchValueOperation;
-  field: Fields<T>;
-  value: any;
-} | {
-  operation: PatchRemoveOperation;
-  field: Fields<T>;
-  value?: any;
-} | {
-  operation: PatchFromOperation;
-  from: string;
-  field: Fields<T>;
-};
+export type CheckedPatchOpts<T> =
+  | {
+      operation: PatchValueOperation;
+      field: Fields<T>;
+      value: any;
+    }
+  | {
+      operation: PatchRemoveOperation;
+      field: Fields<T>;
+      value?: any;
+    }
+  | {
+      operation: PatchFromOperation;
+      from: string;
+      field: Fields<T>;
+    };
 
-type CombinedPatchOpts<T> = { 
+type CombinedPatchOpts<T> = {
   readonly checkedPatches?: CheckedPatchOpts<T>[];
   readonly unCheckedPatches: PatchOpts[];
-}
-type CompositePatchOpts<T> = CheckedPatchOpts<T>[] | CombinedPatchOpts<T>
+};
+type CompositePatchOpts<T> = CheckedPatchOpts<T>[] | CombinedPatchOpts<T>;
 
 export type WithOptionalId<A extends { _id: string }> = Omit<A, "_id"> & {
   _id?: string;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export type ReferenceType<T, D = T> = Partial<T> & {
   readonly _ref: string;
   readonly _refResourceCollection?: string;
@@ -142,84 +138,81 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
 
   /**
    * Reads and returns a resource object with type checked fields in the options.
-   * 
+   *
    * Checked fields are limited to only the direct fields on the resource and do not support:
    * * Wildcards eg `*` or `*_ref`
    * * Navigating relationships eg `manager/givenName`
    * * Leading slashes eg `/givenName`
-   * 
+   *
    * @example
    * Reads a managed object with specific known fields, if the fields are deleted or renamed this code would no longer compile
    * ```ts
    * const user = idm.managed.user.read("<managedUserId>", { fields: ["userName", "givenName"] })
-   * 
+   *
    * // This works
    * let name = user.givenName
-   * 
+   *
    * // This doesn't compile because the type has been narrowed to the selected fields and mail isn't one of the selected fields
    * let mail = user.mail
    * ```
-   * 
+   *
    * @example
    * Doesn't compile because of misspelling in `userName`
    * ```ts
    * idm.managed.user.read("<managedUserId>", { fields: ["userNome", "givenName"] })
    * ```
-   * 
+   *
    * @param id - The resource id of the object
    * @param options - Options object which must contain an array of checked fields
    * @returns The object with its type narrowed to given fields in the options  or `null` if not found.
    */
   public read<F extends Fields<T>>(id: string, options: { readonly params?: object; readonly fields: [F, ...F[]] }): ResultType<T, D, F> | null;
-  
+
   /**
    * Reads and returns a resource object with unchecked fields in the options.
-   * 
+   *
    * This unchecked version is essentially an escape hatch to the checked version above. The following circumstances must use an escape hatch:
    * 1. Wildcards such as `*_ref`, `*` or `manager/*`
    * 2. Relationship fields such as `manager/givenName` or "reports/*&#47;givenName"
-   * 
+   *
    * @example
    * Reads a managed object using un-checked fields
    * ```ts
    * idm.managed.user.read("<managedUserId>", { unCheckedFields: ["givenName", "manager/*"] })
    * ```
-   * 
+   *
    * @param id - The resource id of the object
    * @param options - Options object which must contain an array of checked fields
    * @returns The object with its type allowing all fields as TypeScript won't know which fields you have chosen or `null` if not found.
    */
-  public read<F extends Fields<T>>(id: string, options: { readonly params?: object; readonly unCheckedFields: string[] }): (T & Revision) | null;
-  
+  public read(id: string, options: { readonly params?: object; readonly unCheckedFields: string[] }): (T & Revision) | null;
+
   /**
    * Reads and returns a resource object with the default fields.
-   * 
+   *
    * @example
-   * Reads a managed object with an escape 
+   * Reads a managed object with an escape
    * ```ts
    * idm.managed.user.read("<managedUserId>")
    * ```
-   * 
+   *
    * @param id - The resource id of the object.
    * @param options - Options object which can contain params, but no fields.
    * @returns The object with its type narrowed to the default fields for the object or `null` if not found.
    */
-  public read<F extends Fields<T>>(id: string, options?: { readonly params?: object }): (D & Revision) | null;
-  public read<F extends Fields<T>>(
-    id: string,
-    { params, fields, unCheckedFields }: { readonly params?: object; readonly fields?: F[]; readonly unCheckedFields?: string[] } = {}
-  ) {
+  public read(id: string, options?: { readonly params?: object }): (D & Revision) | null;
+  public read<F extends Fields<T>>(id: string, { params, fields, unCheckedFields }: { readonly params?: object; readonly fields?: F[]; readonly unCheckedFields?: string[] } = {}) {
     return openidm.read(`${this.type}/${id}`, params, unCheckedFields ? unCheckedFields : fields);
   }
 
   /**
    * This function creates a new resource object returning the newly created object with only the specified fields and the type narrowed accordingly.
-   * 
+   *
    * Checked fields are limited to only the direct fields on the resource and do not support:
    * * Wildcards eg `*` or `*_ref`
    * * Navigating relationships eg `manager/givenName`
    * * Leading slashes eg `/givenName`
-   * 
+   *
    * @example
    * ```ts
    * idm.managed.user.create(
@@ -228,25 +221,21 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
    *  { fields: ["userName", "givenName"] }
    * )
    * ```
-   * 
+   *
    * @param newResourceId - The identifier of the object to be created, if the client is supplying the ID. If the server should generate the ID, pass null here.
    * @param content - The content of the object to be created.
    * @param options - Options object which must contain an array of checked fields.
    * @returns The created resource object with it's type narrowed to the specified fields.
    */
-  public create<F extends Fields<T>>(
-    newResourceId: string | null,
-    content: WithOptionalId<T>,
-    options: { readonly params?: object; readonly fields: F[] }
-  ): ResultType<T, D, F>;
+  public create<F extends Fields<T>>(newResourceId: string | null, content: WithOptionalId<T>, options: { readonly params?: object; readonly fields: F[] }): ResultType<T, D, F>;
 
   /**
    * This function creates a new resource object returning the newly created object with only the specified unchecked fields. The resulting type contains all possible fields as TypeScript isn't able to figure out which fields should be returned.
-   * 
+   *
    * This unchecked version is essentially an escape hatch to the checked version above. The following circumstances must use an escape hatch:
    * 1. Wildcards such as `*_ref`, `*` or `manager/*`
    * 2. Relationship fields such as `manager/givenName` or "reports/*&#47;givenName"
-   * 
+   *
    * @example
    * ```ts
    * idm.managed.user.create(
@@ -255,22 +244,17 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
    *  { uncheckedFields: ["*"] }
    * )
    * ```
-   * 
+   *
    * @param newResourceId - The identifier of the object to be created, if the client is supplying the ID. If the server should generate the ID, pass null here.
    * @param content - The content of the object to be created.
    * @param options - Options object which must contain an array of unchecked fields.
    * @returns The created resource object with it's type allowing all fields as TypeScript won't know which fields you have chosen.
    */
-  public create<F extends Fields<T>>(
-    newResourceId: string | null,
-    content: WithOptionalId<T>,
-    options: { readonly params?: object; readonly unCheckedFields: string[] }
-  ): T & Revision;
-
+  public create(newResourceId: string | null, content: WithOptionalId<T>, options: { readonly params?: object; readonly unCheckedFields: string[] }): T & Revision;
 
   /**
    * This function creates a new resource object returning the newly created object with the default fields.
-   * 
+   *
    * @example
    * ```ts
    * idm.managed.user.create(
@@ -278,32 +262,32 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
    *  { userName: "abc123", givenName: "Babs", sn: "Jansen", mail: "babs@babs.com"}
    * )
    * ```
-   * 
+   *
    * @param newResourceId - The identifier of the object to be created, if the client is supplying the ID. If the server should generate the ID, pass null here.
    * @param content - The content of the object to be created.
    * @param options - Options object which can contain params, but no fields.
    * @returns The created resource object with it's type narrowed to the default fields.
    */
-  public create<F extends Fields<T>>(newResourceId: string | null, content: WithOptionalId<T>, options?: { readonly params?: object }): D & Revision;
+  public create(newResourceId: string | null, content: WithOptionalId<T>, options?: { readonly params?: object }): D & Revision;
   public create<F extends Fields<T>>(
     newResourceId: string | null,
     content: WithOptionalId<T>,
-    { params, fields, unCheckedFields }: { readonly params?: object; readonly fields?: F[]; readonly unCheckedFields?: string[] } = {}
+    { params, fields, unCheckedFields }: { readonly params?: object; readonly fields?: F[]; readonly unCheckedFields?: string[] } = {},
   ) {
     return openidm.create(this.type, newResourceId, content, params, unCheckedFields ? unCheckedFields : fields);
   }
 
   /**
    * This function performs a partial modification of a managed or system object. Unlike the update function, only the modified attributes are provided, not the entire object. It returns the modified object with only the specified fields and the type narrowed accordingly.
-   * 
+   *
    * Checked fields are limited to only the direct fields on the resource and do not support:
    * * Wildcards eg `*` or `*_ref`
    * * Navigating relationships eg `manager/givenName`
    * * Leading slashes eg `/givenName`
-   * 
+   *
    * @example
    * A `remove` operation removes a property if the value of that property equals the specified value, or if no value is specified in the request. The following example `value` removes the `marital_status` property from the object, if the value of that property is `single`:
-   * 
+   *
    * ```json
    * [
    *     {
@@ -314,7 +298,7 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
    * ]
    * ```
    * For fields whose value is an array, it’s not necessary to know the position of the value in the array, as long as you specify the full object. If the full object is found in the array, that value is removed. The following example removes user adonnelly from bjensen’s `reports`:
-   * 
+   *
    * ```json
    * {
    *     "operation": "remove",
@@ -331,9 +315,9 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
    * }
    * ```
    * If an invalid value is specified (that is a value that does not exist for that property in the current object) the patch request is silently ignored.
-   * 
+   *
    * A replace operation replaces an existing value, or adds a value if no value exists.
-   * 
+   *
    * @example
    * Patching an object to add a value to an array as an unchecked patch because checked patches require the field name to match the resource attribute name exactly without slashes or other additional characters:
    * ```ts
@@ -346,7 +330,7 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
    *  { fields: ["userName", "givenName"] }
    * );
    * ```
-   * 
+   *
    * @example
    * Patching an object with both a checked and unchecked patch:
    * ```ts
@@ -360,10 +344,10 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
    *  { fields: ["userName", "givenName"] }
    * );
    * ```
-   * 
+   *
    * @example
    * Patching an object to remove an existing property:
-   * 
+   *
    * ```ts
    * idm.managed.user.patch(
    *  user._id,
@@ -372,10 +356,10 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
    *  { fields: ["userName", "givenName"] }
    * );
    * ```
-   * 
+   *
    * @example
    * Patching an object to replace a field value:
-   * 
+   *
    * ```ts
    * idm.managed.user.patch(
    *  user._id,
@@ -384,7 +368,7 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
    *  { fields: ["userName", "givenName"] }
    * );
    * ```
-   * 
+   *
    * @example
    * Patching an object to increment an integer value:
    * ```ts
@@ -395,30 +379,25 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
    *  { fields: ["userName", "givenName"] }
    * );
    * ```
-   * 
+   *
    * @param id - The identifier of the object to be patched
    * @param rev - The revision of the object to be updated. Use null if the object is not subject to revision control, or if you want to skip the revision check and update the object, regardless of the revision.
    * @param value - An array of one or more JSON patches with checked fields or an object that contains an unchecked patches with optional checked patches.
    * @param options Options object which must contain an array of checked fields.
    * @returns The modified resource object with it's type narrowed to the specified fields.
    */
-  public patch<F extends Fields<T>>(
-    id: string,
-    rev: string | null,
-    value: CompositePatchOpts<T>,
-    options: { readonly params?: object; readonly fields: F[] }
-  ): ResultType<T, D, F>;
+  public patch<F extends Fields<T>>(id: string, rev: string | null, value: CompositePatchOpts<T>, options: { readonly params?: object; readonly fields: F[] }): ResultType<T, D, F>;
 
   /**
    * This function performs a partial modification of a managed or system object. Unlike the update function, only the modified attributes are provided, not the entire object. It returns the modified object with only the specified unchecked fields.
-   * 
+   *
    * This unchecked field values version is essentially an escape hatch to the checked version above. The following circumstances must use an escape hatch:
    * 1. Wildcards such as `*_ref`, `*` or `manager/*`
    * 2. Relationship fields such as `manager/givenName` or "reports/*&#47;givenName"
-   * 
+   *
    * @example
    * A `remove` operation removes a property if the value of that property equals the specified value, or if no value is specified in the request. The following example `value` removes the `marital_status` property from the object, if the value of that property is `single`:
-   * 
+   *
    * ```json
    * [
    *     {
@@ -429,7 +408,7 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
    * ]
    * ```
    * For fields whose value is an array, it’s not necessary to know the position of the value in the array, as long as you specify the full object. If the full object is found in the array, that value is removed. The following example removes user adonnelly from bjensen’s `reports`:
-   * 
+   *
    * ```json
    * {
    *     "operation": "remove",
@@ -446,9 +425,9 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
    * }
    * ```
    * If an invalid value is specified (that is a value that does not exist for that property in the current object) the patch request is silently ignored.
-   * 
+   *
    * A replace operation replaces an existing value, or adds a value if no value exists.
-   * 
+   *
    * @example
    * Patching an object to add a value to an array as an unchecked patch because checked patches require the field name to match the resource attribute name exactly without slashes or other additional characters:
    * ```ts
@@ -461,7 +440,7 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
    *  { uncheckedFields: ["*"] }
    * );
    * ```
-   * 
+   *
    * @example
    * Patching an object with both a checked and unchecked patch:
    * ```ts
@@ -475,10 +454,10 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
    *  { uncheckedFields: ["*"] }
    * );
    * ```
-   * 
+   *
    * @example
    * Patching an object to remove an existing property:
-   * 
+   *
    * ```ts
    * idm.managed.user.patch(
    *  user._id,
@@ -487,10 +466,10 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
    *  { uncheckedFields: ["*"] }
    * );
    * ```
-   * 
+   *
    * @example
    * Patching an object to replace a field value:
-   * 
+   *
    * ```ts
    * idm.managed.user.patch(
    *  user._id,
@@ -499,7 +478,7 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
    *  { uncheckedFields: ["*"] }
    * );
    * ```
-   * 
+   *
    * @example
    * Patching an object to increment an integer value:
    * ```ts
@@ -510,7 +489,7 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
    *  { uncheckedFields: ["*"] }
    * );
    * ```
-   * 
+   *
    * @param id - The identifier of the object to be patched
    * @param rev - The revision of the object to be updated. Use null if the object is not subject to revision control, or if you want to skip the revision check and update the object, regardless of the revision.
    * @param value - An array of one or more JSON patches with checked fields or an object that contains an unchecked patches with optional checked patches.
@@ -521,15 +500,15 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
     id: string,
     rev: string | null,
     value: CompositePatchOpts<T>,
-    options: { readonly params?: object; readonly unCheckedFields: F[] }
+    options: { readonly params?: object; readonly unCheckedFields: F[] },
   ): T & Revision;
 
   /**
    * This function performs a partial modification of a managed or system object. Unlike the update function, only the modified attributes are provided, not the entire object. It returns the modified object with the default fields.
-   * 
+   *
    * @example
    * A `remove` operation removes a property if the value of that property equals the specified value, or if no value is specified in the request. The following example `value` removes the `marital_status` property from the object, if the value of that property is `single`:
-   * 
+   *
    * ```json
    * [
    *     {
@@ -540,7 +519,7 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
    * ]
    * ```
    * For fields whose value is an array, it’s not necessary to know the position of the value in the array, as long as you specify the full object. If the full object is found in the array, that value is removed. The following example removes user adonnelly from bjensen’s `reports`:
-   * 
+   *
    * ```json
    * {
    *     "operation": "remove",
@@ -557,9 +536,9 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
    * }
    * ```
    * If an invalid value is specified (that is a value that does not exist for that property in the current object) the patch request is silently ignored.
-   * 
+   *
    * A replace operation replaces an existing value, or adds a value if no value exists.
-   * 
+   *
    * @example
    * Patching an object to add a value to an array as an unchecked patch because checked patches require the field name to match the resource attribute name exactly without slashes or other additional characters:
    * ```ts
@@ -571,7 +550,7 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
    *  }
    * );
    * ```
-   * 
+   *
    * @example
    * Patching an object with both a checked and unchecked patch:
    * ```ts
@@ -584,10 +563,10 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
    *  }
    * );
    * ```
-   * 
+   *
    * @example
    * Patching an object to remove an existing property:
-   * 
+   *
    * ```ts
    * idm.managed.user.patch(
    *  user._id,
@@ -595,10 +574,10 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
    *  [{"operation":"remove", "field":"marital_status", "value":"single"}]
    * );
    * ```
-   * 
+   *
    * @example
    * Patching an object to replace a field value:
-   * 
+   *
    * ```ts
    * idm.managed.user.patch(
    *  user._id,
@@ -606,7 +585,7 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
    *  [{"operation":"replace", "field":"password", "value":"Passw0rd"}]
    * );
    * ```
-   * 
+   *
    * @example
    * Patching an object to increment an integer value:
    * ```ts
@@ -616,34 +595,32 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
    *  [{"operation":"increment","field":"/age","value":1}]
    * );
    * ```
-   * 
+   *
    * @param id - The identifier of the object to be patched
    * @param rev - The revision of the object to be updated. Use null if the object is not subject to revision control, or if you want to skip the revision check and update the object, regardless of the revision.
    * @param value - An array of one or more JSON patches with checked fields or an object that contains an unchecked patches with optional checked patches.
    * @param options Options object which can contain params, but no fields.
    * @returns The modified resource object with it's type narrowed to the default fields.
    */
-  public patch<F extends Fields<T>>(id: string, rev: string | null, value: CompositePatchOpts<T>, options?: { readonly params?: object }): D & Revision;
+  public patch(id: string, rev: string | null, value: CompositePatchOpts<T>, options?: { readonly params?: object }): D & Revision;
   public patch<F extends Fields<T>>(
     id: string,
     rev: string | null,
     value: CompositePatchOpts<T>,
-    { params, fields, unCheckedFields }: { readonly params?: object; readonly fields?: F[]; readonly unCheckedFields?: string[] } = {}
+    { params, fields, unCheckedFields }: { readonly params?: object; readonly fields?: F[]; readonly unCheckedFields?: string[] } = {},
   ) {
-    const patchValues = this.isCombinedPatchOpts(value)
-      ? [...value.unCheckedPatches, ...value.checkedPatches ?? []]
-      : value;
+    const patchValues = this.isCombinedPatchOpts(value) ? [...value.unCheckedPatches, ...(value.checkedPatches ?? [])] : value;
     return openidm.patch(`${this.type}/${id}`, rev, patchValues, params, unCheckedFields ? unCheckedFields : fields);
   }
 
   /**
    * This function updates an entire resource object returning the updated object with only the specified fields and the type narrowed accordingly.
-   * 
+   *
    * Checked fields are limited to only the direct fields on the resource and do not support:
    * * Wildcards eg `*` or `*_ref`
    * * Navigating relationships eg `manager/givenName`
    * * Leading slashes eg `/givenName`
-   * 
+   *
    * @example
    * ```ts
    * idm.managed.user.update(
@@ -652,28 +629,22 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
    *  { fields: ["userName", "givenName"] }
    * )
    * ```
-   * 
+   *
    * @param id - The identifier of the object to be updated
    * @param rev - The revision of the object to be updated. Use `null` if the object is not subject to revision control, or if you want to skip the revision check and update the object, regardless of the revision.
    * @param value - The complete replacement object.
    * @param options Options object which must contain an array of checked fields.
    * @returns The updated resource object with it's type narrowed to the specified fields.
    */
-  public update<F extends Fields<T>>(
-    id: string,
-    rev: string | null,
-    value: WithOptionalId<T>,
-    options: { readonly params?: object; readonly fields: F[] }
-  ): ResultType<T, D, F>;
-
+  public update<F extends Fields<T>>(id: string, rev: string | null, value: WithOptionalId<T>, options: { readonly params?: object; readonly fields: F[] }): ResultType<T, D, F>;
 
   /**
    * This function updates an entire resource object returning the updated object with only the specified unchecked fields. The resulting type contains all possible fields as TypeScript isn't able to figure out which fields should be returned.
-   * 
+   *
    * This unchecked version is essentially an escape hatch to the checked version above. The following circumstances must use an escape hatch:
    * 1. Wildcards such as `*_ref`, `*` or `manager/*`
    * 2. Relationship fields such as `manager/givenName` or "reports/*&#47;givenName"
-   * 
+   *
    * @example
    * ```ts
    * idm.managed.user.update(
@@ -682,24 +653,19 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
    *  { unCheckedFields: ["*"] }
    * )
    * ```
-   * 
+   *
    * @param id - The identifier of the object to be updated
    * @param rev - The revision of the object to be updated. Use `null` if the object is not subject to revision control, or if you want to skip the revision check and update the object, regardless of the revision.
    * @param value - The complete replacement object.
    * @param options - Options object which must contain an array of unchecked fields.
    * @returns The updated resource object with it's type allowing all fields as TypeScript won't know which fields you have chosen.
    */
-  public update<F extends Fields<T>>(
-    id: string,
-    rev: string | null,
-    value: WithOptionalId<T>,
-    options: { readonly params?: object; readonly unCheckedFields: string[] }
-  ): T & Revision;
+  public update(id: string, rev: string | null, value: WithOptionalId<T>, options: { readonly params?: object; readonly unCheckedFields: string[] }): T & Revision;
 
   /**
    * This function updates an entire resource object returning the newly created object with the default fields.
-   * 
-   * 
+   *
+   *
    * @example
    * ```ts
    * idm.managed.user.update(
@@ -708,45 +674,38 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
    *  { fields: ["userName", "givenName"] }
    * )
    * ```
-   * 
+   *
    * @param id - The identifier of the object to be updated
    * @param rev - The revision of the object to be updated. Use `null` if the object is not subject to revision control, or if you want to skip the revision check and update the object, regardless of the revision.
    * @param value - The complete replacement object.
    * @param options Options object which must contain an array of checked fields.
    * @returns The updated resource object with it's type narrowed to the default fields.
    */
-  public update<F extends Fields<T>>(id: string, rev: string | null, value: WithOptionalId<T>, options?: { readonly params?: object }): D & Revision;
+  public update(id: string, rev: string | null, value: WithOptionalId<T>, options?: { readonly params?: object }): D & Revision;
   public update<F extends Fields<T>>(
     id: string,
     rev: string | null,
     value: WithOptionalId<T>,
-    { params, fields, unCheckedFields }: { readonly params?: object; readonly fields?: F[]; readonly unCheckedFields?: string[] } = {}
+    { params, fields, unCheckedFields }: { readonly params?: object; readonly fields?: F[]; readonly unCheckedFields?: string[] } = {},
   ) {
     return openidm.update(`${this.type}/${id}`, rev, value, params, unCheckedFields ? unCheckedFields : fields);
   }
 
   public delete<F extends Fields<T>>(id: string, rev: string | null, options: { readonly params?: object; readonly fields: F[] }): ResultType<T, D, F>;
+  public delete<F extends Fields<T>>(id: string, rev: string | null, options: { readonly params?: object; readonly unCheckedFields: F[] }): T & Revision;
+  public delete(id: string, rev: string | null, options?: { readonly params?: object }): D & Revision;
   public delete<F extends Fields<T>>(
     id: string,
     rev: string | null,
-    options: { readonly params?: object; readonly unCheckedFields: F[] }
-  ): T & Revision;
-  public delete<F extends Fields<T>>(id: string, rev: string | null, options?: { readonly params?: object }): D & Revision;
-  public delete<F extends Fields<T>>(
-    id: string,
-    rev: string | null,
-    { params, fields, unCheckedFields }: { readonly params?: object; readonly fields?: F[]; readonly unCheckedFields?: string[] } = {}
+    { params, fields, unCheckedFields }: { readonly params?: object; readonly fields?: F[]; readonly unCheckedFields?: string[] } = {},
   ) {
     return openidm.delete(`${this.type}/${id}`, rev, params, unCheckedFields ? unCheckedFields : fields);
   }
 
   public query<F extends Fields<T>>(params: QueryFilterExtended<T>, options: { readonly fields: F[] }): QueryResult<ResultType<T, D, F>>;
-  public query<F extends Fields<T>>(params: QueryFilterExtended<T>, options: { readonly unCheckedFields: string[] }): QueryResult<T & Revision>;
-  public query<F extends Fields<T>>(params: QueryFilterExtended<T>): QueryResult<D & Revision>;
-  public query<F extends Fields<T>>(
-    params: QueryFilterExtended<T>,
-    { fields, unCheckedFields }: { readonly fields?: F[]; readonly unCheckedFields?: string[] } = {}
-  ) {
+  public query(params: QueryFilterExtended<T>, options: { readonly unCheckedFields: string[] }): QueryResult<T & Revision>;
+  public query(params: QueryFilterExtended<T>): QueryResult<D & Revision>;
+  public query<F extends Fields<T>>(params: QueryFilterExtended<T>, { fields, unCheckedFields }: { readonly fields?: F[]; readonly unCheckedFields?: string[] } = {}) {
     return openidm.query(this.type, this.flattenFilter(params), unCheckedFields ? unCheckedFields : fields);
   }
 
@@ -760,7 +719,7 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
     const refProps = { _refProperties: refProperties };
     return {
       _ref: this.type + "/" + managedObjectId,
-      ...refProps
+      ...refProps,
     };
   }
 
@@ -781,9 +740,8 @@ export class IDMObject<T extends IDMObjectType<string>, D extends IDMObjectType<
   }
 
   private isCombinedPatchOpts(value: CompositePatchOpts<T>): value is CombinedPatchOpts<T> {
-    return (value as CombinedPatchOpts<T>)?.unCheckedPatches !== undefined
+    return (value as CombinedPatchOpts<T>)?.unCheckedPatches !== undefined;
   }
 }
 
-export const idmObject = <T extends IDMObjectType<string>, D extends IDMObjectType<string>>(type: Exclude<T["_tag"], undefined>) =>
-  new IDMObject<T, D>(type);
+export const idmObject = <T extends IDMObjectType<string>, D extends IDMObjectType<string>>(type: Exclude<T["_tag"], undefined>) => new IDMObject<T, D>(type);

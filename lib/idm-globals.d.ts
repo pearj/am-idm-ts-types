@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 declare const identityServer: IdentityServer;
 
 declare const logger: Logger;
@@ -13,7 +14,9 @@ type Revision = {
 
 type Result = IDMBaseObject & Revision & Record<string, any>;
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface EncryptedValue {}
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface HashedValue {}
 
 type HashAlgorithm = "SHA-256" | "SHA-384" | "SHA-512" | "Bcrypt" | "Scrypt" | "PBKDF2";
@@ -271,6 +274,7 @@ interface OpenIDM {
   matches: (string: string, value: HashedValue) => boolean;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 type Cookie = {};
 
 interface QueryResult<T> {

@@ -1,0 +1,22 @@
+{
+  "idmTsCodeGen": {
+    "idmTsTypesOutputFile": "./test/fixtures/output/idm.ts",
+    "idmProjectConfigDir": "./test/fixtures/project/conf",
+    "useUnknownInsteadOfAny": false,
+    "useUnknownInsteadOfAnyForManagedObj": null,
+    "useUnknownInsteadOfAnyForConnectorObj": null
+  },
+  "integrationTesting": {
+    "baseUrl": "http://localhost:8080",
+    "auth": {
+      "username": "openidm-admin",
+      "password": "openidm-admin"
+    },
+    "ad": {
+      "baseDn": "OU=IntegrationTesting,DC=ad,DC=domain"
+    }
+  },
+  "webpack": {
+    "outputDir": "./project/generated-script"
+  }
+}

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable @typescript-eslint/no-require-imports */
 
 const path = require("path");
 const camelCase = require("camelcase");
@@ -26,46 +27,63 @@ function coalesce() {
   return null;
 }
 
-const idmTsCodeGen = config.get("idmTsCodeGen");
-const managedObjectValueType = coalesce(idmTsCodeGen.useUnknownInsteadOfAnyForManagedObj, idmTsCodeGen.useUnknownInsteadOfAny, false)
-  ? "unknown"
-  : "any";
-const connectorObjectValueType = coalesce(idmTsCodeGen.useUnknownInsteadOfAnyForConnectorObj, idmTsCodeGen.useUnknownInsteadOfAny, false)
-  ? "unknown"
-  : "any";
+let idmTsCodeGen;
+let managedObjectValueType;
 
-const generateManagedTypeName = managedObjectName =>
+function initConfig() {
+  if (!idmTsCodeGen) {
+    idmTsCodeGen = config.get("idmTsCodeGen");
+    managedObjectValueType = coalesce(idmTsCodeGen.useUnknownInsteadOfAnyForManagedObj, idmTsCodeGen.useUnknownInsteadOfAny, false)
+      ? "unknown"
+      : "any";
+  }
+}
+
+function setConfig(customConfig) {
+  if (customConfig === null) {
+    idmTsCodeGen = undefined;
+    managedObjectValueType = undefined;
+  } else {
+    idmTsCodeGen = customConfig;
+    managedObjectValueType = coalesce(idmTsCodeGen.useUnknownInsteadOfAnyForManagedObj, idmTsCodeGen.useUnknownInsteadOfAny, false)
+      ? "unknown"
+      : "any";
+  }
+}
+
+const generateManagedTypeName = (managedObjectName) =>
   "Managed" +
   camelCase(managedObjectName, {
-    pascalCase: true
+    pascalCase: true,
   });
 const generateSystemTypeName = (connectorName, typeName) =>
   "System" +
   camelCase(connectorName, {
-    pascalCase: true
+    pascalCase: true,
   }) +
   camelCase(typeName, {
-    pascalCase: true
+    pascalCase: true,
   });
 const generateSystemObjName = (connectorName, typeName) =>
   camelCase(connectorName) +
   camelCase(typeName, {
-    pascalCase: true
+    pascalCase: true,
   });
 
 const generateSubTsTypeName = (objectBaseType, subType) =>
   objectBaseType +
   camelCase(subType, {
-    pascalCase: true
+    pascalCase: true,
   });
 
-const isManagedType = typeName => typeName.startsWith("Managed");
+const isManagedType = (typeName) => typeName.startsWith("Managed");
 
-const filterResourceCollection = resourceCollection => resourceCollection.filter(res => res.path.startsWith("managed/"));
+const filterResourceCollection = (resourceCollection) => resourceCollection.filter((res) => res.path.startsWith("managed/"));
 
-const provisionerRegex = /\.*[\\\/]provisioner.openicf-(.*)\.json.*/;
+const provisionerRegex = /\.*[\\\\/]provisioner.openicf-(.*)\.json.*/;
 
 function convertType(props, propName, originalObjectName, tsTypeName, subTypes) {
+  initConfig();
   var type;
   var schemaType = props.type;
 
@@ -99,31 +117,32 @@ function convertType(props, propName, originalObjectName, tsTypeName, subTypes) 
       if (props.items && props.items.type) {
         let convertedType = convertType(props.items, propName, originalObjectName, tsTypeName, subTypes);
         // Append the array syntax onto the converted type
-        type = convertedType.types.map(ct => `${ct}[]`);
+        type = convertedType.types.map((ct) => `${ct}[]`);
       } else {
         type = `${managedObjectValueType}[]`;
       }
       break;
-    case "relationship":
+    case "relationship": {
       if (!isManagedType(tsTypeName)) {
         throw new Error(`Relationships are only supported for Managed Objects. Type ${tsTypeName}, property ${propName}`);
       }
       // Relationships can have multiple types, so we need to get all of the types
       let relTypes = filterResourceCollection(props.resourceCollection)
-        .map(mo => generateManagedTypeName(mo.path.replace("managed/", "")))
+        .map((mo) => generateManagedTypeName(mo.path.replace("managed/", "")))
         .join(" | ");
       if (!relTypes) {
         relTypes = `Record<string, ${managedObjectValueType}>`;
-        const otherTypes = props.resourceCollection.map(obj => obj.path).join(", ");
+        const otherTypes = props.resourceCollection.map((obj) => obj.path).join(", ");
         console.warn(`Unable to find managed object type(s) for ${propName}, specified types are [${otherTypes}], falling back to ${relTypes}`);
         type = `ReferenceType<${relTypes}>`;
       } else {
         let relDefaults = filterResourceCollection(props.resourceCollection)
-          .map(mo => generateManagedTypeName(mo.path.replace("managed/", "")) + "Defaults")
+          .map((mo) => generateManagedTypeName(mo.path.replace("managed/", "")) + "Defaults")
           .join(" | ");
         type = `ReferenceType<${relTypes}, ${relDefaults}>`;
       }
       break;
+    }
     default:
       throw new Error("Unsupported type [" + schemaType + "] for property [" + propName + "]");
   }
@@ -172,17 +191,15 @@ const isRequired = (property, propertyName, parent) =>
 function generateConnectorTypes(idmConfigDir, subConnectorTypes) {
   const connectorFiles = glob.sync(idmConfigDir + "/provisioner.openicf-*.json");
 
-  return connectorFiles.map(conn => {
+  return connectorFiles.map((conn) => {
     var connectorObject;
     try {
       // Resolve the path preferring the current working directory
       connectorObject = require(path.resolve(conn));
     } catch (err) {
-      if (err instanceof Error) {
-        var newErr = Error("Failed to load connector file [" + conn + "]");
-        newErr.stack += "\nCaused by: " + err.stack;
-        throw newErr;
-      } 
+      var newErr = Error("Failed to load connector file [" + conn + "]");
+      newErr.stack += "\nCaused by: " + (err && typeof err === "object" && "stack" in err ? err.stack : err);
+      throw newErr;
     }
 
     const match = provisionerRegex.exec(conn);
@@ -191,7 +208,7 @@ function generateConnectorTypes(idmConfigDir, subConnectorTypes) {
     }
     const systemTypeName = match[1];
 
-    return Object.keys(connectorObject.objectTypes).map(objName => {
+    return Object.keys(connectorObject.objectTypes).map((objName) => {
       const connObj = connectorObject.objectTypes[objName];
       const tsType = generateSystemTypeName(systemTypeName, objName);
       const sysObjName = generateSystemObjName(systemTypeName, objName);
@@ -202,7 +219,7 @@ function generateConnectorTypes(idmConfigDir, subConnectorTypes) {
         name: sysObjName,
         tsType: tsType,
         connectorName: systemTypeName,
-        properties: Object.keys(connObj.properties).map(propName => {
+        properties: Object.keys(connObj.properties).map((propName) => {
           const value = connObj.properties[propName];
 
           var title = value.title;
@@ -223,9 +240,9 @@ function generateConnectorTypes(idmConfigDir, subConnectorTypes) {
             type: convertType(value, propName, fullName, tsType, subConnectorTypes),
             required: isRequired(value, propName, connObj),
             title: title,
-            description: description
+            description: description,
           };
-        })
+        }),
       };
     });
   });
@@ -238,19 +255,17 @@ function generateManagedTypes(idmConfigDir, subManagedTypes) {
     // Resolve the path preferring the current working directory
     managedObjects = require(path.resolve(managedObjectsFile));
   } catch (err) {
-    if (err instanceof Error) {
-      var newErr = Error("Failed to load managed objects file [" + managedObjectsFile + "]");
-      newErr.stack += "\nCaused by: " + err.stack;
-      throw newErr;
-    }
+    var newErr = Error("Failed to load managed objects file [" + managedObjectsFile + "]");
+    newErr.stack += "\nCaused by: " + (err && typeof err === "object" && "stack" in err ? err.stack : err);
+    throw newErr;
   }
-  const idmTypes = managedObjects.objects.sort(compareName).map(mo => {
+  const idmTypes = managedObjects.objects.sort(compareName).map((mo) => {
     const managedTypeName = generateManagedTypeName(mo.name);
     return {
       name: mo.name,
       type: mo.schema.type,
       tsType: managedTypeName,
-      properties: Object.keys(mo.schema.properties).map(propName => {
+      properties: Object.keys(mo.schema.properties).map((propName) => {
         const value = mo.schema.properties[propName];
         var title = value.title;
         if (!title && value.description) {
@@ -270,9 +285,9 @@ function generateManagedTypes(idmConfigDir, subManagedTypes) {
           type: convertType(value, propName, mo.name, managedTypeName, subManagedTypes),
           required: isRequired(value, propName, mo.schema),
           title: title,
-          description: description
+          description: description,
         };
-      })
+      }),
     };
   });
 
@@ -287,7 +302,7 @@ function generateSubType(subType, subTypeName, originalObjectBaseName, propName,
     name: subTypeName,
     tsType: subTsTypeName,
     parentTsType: originalObjectBaseName,
-    properties: Object.keys(subType.properties).map(propertyName => {
+    properties: Object.keys(subType.properties).map((propertyName) => {
       const value = subType.properties[propertyName];
       var title = value.title;
       if (!title && value.description) {
@@ -306,15 +321,16 @@ function generateSubType(subType, subTypeName, originalObjectBaseName, propName,
         type: convertType(value, propertyName, subTypeName, subTsTypeName, subTypes),
         required: Array.isArray(subType.required) ? subType.required.includes(propertyName) : false,
         title: title,
-        description: description
+        description: description,
       };
-    })
+    }),
   });
 
   return subTsTypeName;
 }
 
 function generateIdmTsTypes() {
+  initConfig();
   const nunjucksEnv = new nunjucks.Environment(new nunjucks.FileSystemLoader(path.resolve(__dirname)));
   nunjucksEnv.addFilter("flattenType", flattenType);
 
@@ -329,25 +345,54 @@ function generateIdmTsTypes() {
     managedObjects: managedIdmTypes,
     subManagedTypes: subManagedTypes,
     connectorObjects: connectorIdmTypes,
-    subConnectorTypes: subConnectorTypes
+    subConnectorTypes: subConnectorTypes,
   });
 
   // Load the prettier config
-  prettier.resolveConfig(process.cwd()).then(options => {
+  return prettier.resolveConfig(process.cwd()).then(async (options) => {
     // Prettify the generated IDM TS tpes
-    const formatted = prettier.format(template, {
+    const formatted = await prettier.format(template, {
       ...options,
-      parser: "typescript"
+      parser: "typescript",
     });
 
-    fs.writeFile(idmTsCodeGen.idmTsTypesOutputFile, formatted, err => {
-      if (err) {
-        throw err;
-      } else {
-        console.log("Wrote typescript types to [" + idmTsCodeGen.idmTsTypesOutputFile + "]");
-      }
+    return new Promise((resolve, reject) => {
+      fs.writeFile(idmTsCodeGen.idmTsTypesOutputFile, formatted, (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          console.log("Wrote typescript types to [" + idmTsCodeGen.idmTsTypesOutputFile + "]");
+          resolve(undefined);
+        }
+      });
     });
   });
 }
 
-generateIdmTsTypes();
+if (require.main === module) {
+  generateIdmTsTypes().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  coalesce,
+  generateManagedTypeName,
+  generateSystemTypeName,
+  generateSystemObjName,
+  generateSubTsTypeName,
+  isManagedType,
+  filterResourceCollection,
+  convertType,
+  calcReturnByDefault,
+  compareName,
+  flattenType,
+  isRequired,
+  generateConnectorTypes,
+  generateManagedTypes,
+  generateSubType,
+  generateIdmTsTypes,
+  setConfig,
+  initConfig,
+};

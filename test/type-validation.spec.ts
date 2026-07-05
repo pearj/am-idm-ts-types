@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unused-expressions */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { IDMObject, Fields, ResultType, ReferenceType, idmObject } from "../lib/idm-ts";
 import { equals, Filter, presence, startsWith } from "../lib/query-filter";
 
@@ -55,6 +58,7 @@ export type ManagedSubTypeTestDefaults = {
   firstType?: SubManagedSubTypeTestFirstType[] | null;
 } & IDMBaseObject;
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export type ManagedSubTypeTestNonDefaults = {};
 
 export type ManagedSubTypeTest = ManagedSubTypeTestDefaults & ManagedSubTypeTestNonDefaults;
