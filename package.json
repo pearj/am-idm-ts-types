@@ -1,23 +1,19 @@
 {
-  "name": "@agiledigital/idm-ts-types",
+  "name": "@pearj/am-idm-ts-types",
   "version": "0.0.0-development",
   "description": "ForgeRock IDM TypeScript Types",
-  "homepage": "https://github.com/agiledigital/idm-ts-types",
+  "homepage": "https://github.com/pearj/am-idm-ts-types",
   "bugs": {
-    "url": "https://github.com/agiledigital/idm-ts-types/issues"
+    "url": "https://github.com/pearj/am-idm-ts-types/issues"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/agiledigital/idm-ts-types.git"
+    "url": "https://github.com/pearj/am-idm-ts-types.git"
   },
   "contributors": [
     {
       "name": "Joel Pearson",
       "email": "joel.pearson@gmail.com"
-    },
-    {
-      "name": "Rory Stokes",
-      "email": "rmstokes@agiledigital.com.au"
     }
   ],
   "license": "Apache-2.0",
