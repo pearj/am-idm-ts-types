@@ -55,7 +55,41 @@
   "typeCoverage": {
     "atLeast": 98
   },
-  "types": "./lib/idm-globals.d.ts",
+  "types": "./lib/common-globals.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/common-globals.d.ts"
+    },
+    "./common": {
+      "types": "./lib/common-globals.d.ts"
+    },
+    "./idm/common": {
+      "types": "./lib/idm-common-globals.d.ts"
+    },
+    "./idm/endpoint": {
+      "types": "./lib/idm-endpoint-globals.d.ts"
+    },
+    "./am/common": {
+      "types": "./lib/am-common-globals.d.ts"
+    },
+    "./am/scripted-decision": {
+      "types": "./lib/am-scripted-decision-globals.d.ts"
+    },
+    "./lib/*": {
+      "types": "./lib/*",
+      "default": "./lib/*"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "common": ["./lib/common-globals.d.ts"],
+      "idm/common": ["./lib/idm-common-globals.d.ts"],
+      "idm/endpoint": ["./lib/idm-endpoint-globals.d.ts"],
+      "am/common": ["./lib/am-common-globals.d.ts"],
+      "am/scripted-decision": ["./lib/am-scripted-decision-globals.d.ts"],
+      "lib/*": ["./lib/*"]
+    }
+  },
   "publishConfig": {
     "access": "public"
   },
